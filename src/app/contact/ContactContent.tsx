@@ -45,17 +45,30 @@ export function ContactContent() {
     return Object.keys(errs).length === 0;
   };
 
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8080/api';
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-
-    showToast('感谢您的留言！我们会尽快与您联系。', 'success');
-    setFormData({ name: '', email: '', company: '', subject: '', message: '' });
+    try {
+      const res = await fetch(`${API_BASE}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.message || '提交失败');
+      }
+      showToast('感谢您的留言！我们会尽快与您联系。', 'success');
+      setFormData({ name: '', email: '', company: '', subject: '', message: '' });
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : '提交失败，请稍后重试', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (field: string, value: string) => {
